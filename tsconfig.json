@@ -1,19 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-
     "rootDir": "src",
     "outDir": "dist",
-
     "strict": true,
-
     "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["node"],
 
-    "types": ["node"]
+    // lets us run src/ and test/ directly with node, and still emit .js imports
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true
   },
-
   "include": ["src"]
 }
