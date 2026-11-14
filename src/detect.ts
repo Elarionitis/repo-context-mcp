@@ -221,7 +221,15 @@ const MANIFESTS = new Set([
 
 // Sample and test folders often have their own manifests that would drown
 // out the real project, so skip them.
-const SKIP_DIRS = /(^|\/)(examples?|samples?|fixtures?|tests?|__tests__|e2e|docs?|templates?|benchmarks?)\//i;
+const SKIP_DIRS = /(^|\/)(examples?|samples?|fixtures?|tests?|__tests__|e2e|docs?|templates?|bench|benchmarks?|\.[^/]+)\//i;
+
+// In monorepos these folders usually hold the real code.
+const MAIN_DIRS = ["packages", "apps", "crates", "libs", "services", "src", "backend", "frontend", "server", "client", "web", "api"];
+
+function dirRank(path: string): number {
+  const i = MAIN_DIRS.indexOf(path.split("/")[0]);
+  return i === -1 ? MAIN_DIRS.length : i;
+}
 
 function baseName(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1);
@@ -235,7 +243,7 @@ function depth(path: string): number {
 export function pickManifests(paths: string[], max = 12): string[] {
   return paths
     .filter((p) => MANIFESTS.has(baseName(p)) && depth(p) <= 2 && !SKIP_DIRS.test(p))
-    .sort((a, b) => depth(a) - depth(b) || a.localeCompare(b))
+    .sort((a, b) => depth(a) - depth(b) || dirRank(a) - dirRank(b) || a.localeCompare(b))
     .slice(0, max);
 }
 

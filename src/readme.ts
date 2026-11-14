@@ -56,10 +56,12 @@ export function readmeIntro(md: string, max = 900): string {
     .filter(Boolean)
     .join("\n\n");
 
-  if (intro) return cut(intro, max);
+  if (intro.length >= 120) return cut(intro, max);
 
-  const first = sections.find((s) => s.body.trim().length > 40);
-  return first ? cut(first.body.trim(), max) : "";
+  // intro is just a title or logo, so borrow the first real paragraph
+  const first = sections.find((s) => s.level > 1 && s.body.trim().length > 80);
+  const text = [intro, first?.body.trim()].filter(Boolean).join("\n\n");
+  return text ? cut(text, max) : "";
 }
 
 const SETUP_HEADINGS = /install|getting started|get started|quick ?start|setup|set up|usage|development|developing|running|run locally|build/i;
