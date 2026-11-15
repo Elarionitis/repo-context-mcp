@@ -1,6 +1,7 @@
 {
   "name": "repo-context-mcp",
   "version": "2.0.0",
+  "private": true,
   "description": "MCP server and CLI that gives AI coding agents a fast, structured picture of any GitHub repository: stack, layout, run commands, files and activity.",
   "type": "module",
   "main": "dist/index.js",
@@ -9,8 +10,7 @@
   },
   "files": [
     "dist",
-    "README.md",
-    "LICENSE"
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -20,7 +20,7 @@
     "test": "node --test \"test/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "package:skill": "rm -f repo-context-skill.zip && cd skill && zip -rq ../repo-context-skill.zip repo-context -x '*.DS_Store'"
+    "package:skill": "node scripts/build-skill.mjs && rm -f repo-context-skill.zip && cd skill && zip -rq ../repo-context-skill.zip repo-context -x '*.DS_Store'"
   },
   "keywords": [
     "mcp",
@@ -34,7 +34,7 @@
     "copilot"
   ],
   "author": "Suhan Ramani",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Elarionitis/repo-context-mcp.git"
@@ -52,6 +52,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
+    "esbuild": "^0.25.12",
     "typescript": "^5.9.3"
   }
 }

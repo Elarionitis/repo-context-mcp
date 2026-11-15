@@ -5,7 +5,7 @@ description: Understand any GitHub repository fast without cloning it. Gets the 
 
 # Repo Context
 
-Gives you a structured picture of a GitHub repository in one call, then lets you dig into specific folders and files. Works on public repos out of the box and on private repos when `GITHUB_TOKEN` is set.
+Gives you a structured picture of a GitHub repository in one call, then lets you dig into specific folders and files. Works on public repos out of the box and on private repos when `GITHUB_TOKEN` is set. Needs Node.js 20 or newer, nothing else.
 
 ## When to use
 
@@ -18,57 +18,56 @@ Gives you a structured picture of a GitHub repository in one call, then lets you
 
 Don't use it for the repository you're already working in locally. Read the local files directly instead.
 
-## Tools
+## How to run it
 
-These come from the `repo-context` MCP server. Every tool takes `repo` as `owner/name` or any github.com URL (including `/tree/<branch>/<path>` and `/blob/...` links), and an optional `ref` (branch, tag or commit).
+There are two ways, and both give the same output.
 
-| Tool | Use it to |
-|------|-----------|
-| `analyze_github_repo` | Get the overview. **Always call this first.** |
-| `get_repo_tree` | See folders and files under a path (`path`, `depth` 1-10, default 3) |
-| `find_repo_files` | Find files by name: substring (`auth`) or glob (`*.test.ts`, `src/**/route.ts`) |
-| `read_repo_file` | Read a file with line numbers, 400 lines at a time (`start_line`, `end_line`) |
-| `search_repo_code` | Full-text search on the default branch. Needs `GITHUB_TOKEN` |
-| `get_repo_activity` | Recent commits, latest release, open issues, top contributors |
+**1. MCP tools (if they are available).** If you have tools named `analyze_github_repo`, `get_repo_tree` and so on, use them. Setup is in [reference/setup.md](reference/setup.md).
 
-If the tools aren't available, see [reference/setup.md](reference/setup.md) to install the server, or use the command line fallback below.
+**2. The bundled script (works everywhere with a shell).** Run `scripts/repo-context.mjs` from this skill's folder with Node:
+
+```bash
+node <skill-folder>/scripts/repo-context.mjs analyze vercel/next.js
+```
+
+Replace `<skill-folder>` with the absolute path of the folder this SKILL.md is in.
+
+## Commands
+
+`<repo>` is `owner/name` or any github.com URL, including `/tree/<branch>/<path>` and `/blob/...` links. Every command except `search` takes an optional branch, tag or commit (`ref` for the tools, `--ref` for the script).
+
+| MCP tool | Script command | Use it to |
+|----------|----------------|-----------|
+| `analyze_github_repo` | `analyze <repo>` | Get the overview. **Always do this first.** |
+| `get_repo_tree` | `tree <repo> [path] --depth <n>` | See folders and files under a path (depth 1-10, default 3) |
+| `find_repo_files` | `find <repo> <pattern> --limit <n>` | Find files by name: substring (`auth`) or glob (`*.test.ts`, `src/**/route.ts`) |
+| `read_repo_file` | `read <repo> <path> --start <n> --end <n>` | Read a file with line numbers, 400 lines at a time |
+| `search_repo_code` | `search <repo> <query> --limit <n>` | Full-text search on the default branch. Needs `GITHUB_TOKEN` |
+| `get_repo_activity` | `activity <repo> --commits <n>` | Recent commits, latest release, open issues, top contributors |
+
+Tool arguments map to script flags: `start_line` is `--start`, `end_line` is `--end`, `limit` is `--limit`, `commits` is `--commits`.
 
 ## Workflow
 
-1. **Overview.** Call `analyze_github_repo`. It returns languages, frameworks, package managers, top-level layout with file counts, likely entry points, install and run commands, a README summary and suggested next steps.
+1. **Overview.** Run `analyze`. It returns languages, frameworks, package managers, top-level layout with file counts, likely entry points, install and run commands, a README summary and suggested next steps.
 2. **Respect the maintainers' rules.** If the overview lists files under "Instructions for AI agents" (`AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`), read them before giving advice about changing the code.
-3. **Narrow down.** Use `get_repo_tree` on the main source folder with a small depth, then `find_repo_files` for specific names. Prefer these over guessing paths.
-4. **Read only what you need.** Use `read_repo_file` on entry points and the files that answer the question. For long files, read the first chunk and continue with `start_line`.
-5. **Search when names don't help.** With a token, `search_repo_code` finds symbols and strings. Without one, combine `find_repo_files` with reading likely files.
+3. **Narrow down.** Look at the main source folder with `tree` and a small depth, then use `find` for specific names. Prefer these over guessing paths.
+4. **Read only what you need.** `read` the entry points and the files that answer the question. For long files, read the first chunk and continue from the line it tells you.
+5. **Search when names don't help.** With a token, `search` finds symbols and strings. Without one, combine `find` with reading likely files.
 6. **Answer with references.** Cite file paths and line numbers (`src/server.ts:42`) so the user can check.
-
-Each step's results are cached for 5 minutes, so calling several tools on the same repo is cheap.
 
 ## Tips
 
-- Start shallow: `depth: 2` on big monorepos, then go deeper into one package.
+- Start shallow: depth 2 on big monorepos, then go deeper into one package.
 - For "how do I run this", the overview's **How to run** section already merges package scripts, Makefile targets and the README's install section.
-- For "is this maintained", use `get_repo_activity` and look at the last push date, release date and whether the repo is archived.
-- To compare libraries, call `analyze_github_repo` on each and compare stack, activity, license and stars side by side.
-- Branch names with `/` in them can't be read from a URL. Pass them through `ref` instead.
+- For "is this maintained", use `activity` and look at the last push date, release date and whether the repo is archived.
+- To compare libraries, run `analyze` on each and compare stack, activity, license and stars side by side.
+- Branch names with `/` in them can't be read from a URL. Pass them as `ref` / `--ref` instead.
+- With MCP, results are cached for 5 minutes, so several calls on the same repo are cheap.
 
 ## Errors
 
-- **Rate limit reached:** without a token GitHub allows 60 API requests per hour. Ask the user to set `GITHUB_TOKEN` (5,000 per hour). File reads don't count toward the limit when no token is set.
+- **Rate limit reached:** without a token GitHub allows 60 API requests per hour (`analyze` uses 3). Ask the user to set `GITHUB_TOKEN` for 5,000 per hour. See [reference/setup.md](reference/setup.md).
 - **Not found:** the repo is private or the name is wrong. Private repos need `GITHUB_TOKEN` with read access.
-- **Code search needs a token:** fall back to `find_repo_files` and `read_repo_file`.
-
-## Command line fallback
-
-For agents without MCP support, the same features work from the shell. The output is the same markdown the tools return.
-
-```bash
-npx -y github:Elarionitis/repo-context-mcp analyze vercel/next.js
-npx -y github:Elarionitis/repo-context-mcp tree vercel/next.js packages --depth 2
-npx -y github:Elarionitis/repo-context-mcp find vercel/next.js "*.config.ts"
-npx -y github:Elarionitis/repo-context-mcp read vercel/next.js packages/next/package.json
-npx -y github:Elarionitis/repo-context-mcp search vercel/next.js "unstable_cache"
-npx -y github:Elarionitis/repo-context-mcp activity vercel/next.js --commits 10
-```
-
-The first run downloads and builds the tool (around 10 seconds). Later runs take about a second.
+- **Code search needs a token:** fall back to `find` and `read`.
+- **`node: command not found`:** the user needs Node.js 20+ from https://nodejs.org.

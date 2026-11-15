@@ -32,9 +32,11 @@ From there it can drill down with five more tools: browse the file tree, find fi
 - Checking that a dependency is still maintained
 - Reviewing open-source projects without cloning them
 
-**Works with** Claude Code, Cursor, VS Code Copilot, Claude Desktop, Windsurf, Codex CLI, Gemini CLI and any other MCP client. A command line mode covers agents without MCP support.
+**Zero setup.** The tool ships inside the skill, so it works right after install with just Node.js 20+. There's no account to create and no API key to paste.
 
-**Privacy and safety**: read-only. It only talks to GitHub. No account or API key is needed for public repos. An optional GitHub token adds private repos and code search, and it is only sent to api.github.com. Open source, MIT licensed.
+**Works with** Claude Code, Cursor, VS Code Copilot, Claude Desktop, Windsurf, Codex CLI, Gemini CLI and any agent that can run shell commands. It can also run as a native MCP server for agents that support MCP.
+
+**Privacy and safety**: read-only. It only talks to GitHub and sends no telemetry. The bundled script is readable, not minified, so you can review it. An optional GitHub token adds private repos and code search, and it is only sent to api.github.com.
 
 ## Tags
 
@@ -46,4 +48,4 @@ Developer tools / Coding
 
 ## Upload
 
-Run `npm run package:skill` and upload `repo-context-skill.zip`.
+Run `npm run package:skill` and upload `repo-context-skill.zip` from the project root.

@@ -3,3 +3,6 @@ dist
 .env
 .DS_Store
 *.zip
+
+# built by npm run package:skill
+skill/repo-context/scripts/
