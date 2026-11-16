@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="#install">Install (one command)</a> ·
-  <a href="https://www.agensi.io/skills/YOUR-SKILL-LINK">Agensi</a> ·
+  <a href="#install">Install</a> ·
+  <a href="https://www.agensi.io/skills/repo-context-understand-any-github-repo">Agensi</a> ·
   <a href="#tools">Tools</a> ·
   <a href="#command-line">CLI</a>
 </p>
@@ -26,6 +26,170 @@
 Paste a GitHub link or `owner/name` into Claude Code, Cursor or Copilot. One call gives your agent the tech stack, folder layout, entry points, run commands, agent instruction files and a README summary. Five more tools let it browse the tree, find files, read code, search, and check recent activity.
 
 Works with Claude Code, Cursor, VS Code Copilot, Claude Desktop, Windsurf, Codex CLI, Gemini CLI and any other MCP client, and as a plain command line tool for agents that can run shell commands.
+
+![Claude Code answering how fastify is structured, with a table of paths and what each one is for](docs/images/overview.png)
+
+The same call answers whether a dependency is worth adopting, from the repository's releases, commits and maintainers rather than from training data:
+
+![Claude Code answering that fastify is actively maintained, with its last push, latest release and maintainers](docs/images/maintained.png)
+
+## Install
+
+One command. It finds the AI agents on your computer and installs the skill for them:
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp install-skill
+```
+
+Restart your agent, then ask it:
+
+> Analyze expressjs/express
+
+That is the whole setup. You need [Node.js 20 or newer](https://nodejs.org), and the first run takes about 20 seconds while it downloads.
+
+If more than one agent is found, it asks which ones to install for:
+
+```text
+Found these AI agents on your computer:
+  1. Claude Code
+  2. Gemini CLI
+  3. Cursor
+
+Press Enter to install for all, or type numbers (e.g. 1,3): 1
+
+Installed the repo-context skill for:
+  ✓ Claude Code     ~/.claude/skills/repo-context
+```
+
+The skill is also listed free on [Agensi](https://www.agensi.io/skills/repo-context-understand-any-github-repo), if you would rather install from a marketplace.
+
+<details>
+<summary><b>Never opened a terminal?</b></summary>
+
+- **Mac:** press `Cmd + Space`, type **Terminal**, press Enter
+- **Windows:** press the Windows key, type **PowerShell**, press Enter
+- **Linux:** open your terminal app
+
+Paste the command above and press Enter. To check that Node.js is there first, run `node --version`: it should print 20 or higher. If not, install the LTS version from [nodejs.org](https://nodejs.org) and open the terminal again.
+
+</details>
+
+<details>
+<summary><b>One agent only, another folder, or uninstalling</b></summary>
+
+Pick agents with `--agent` (`claude`, `codex`, `gemini`, `copilot`, `cursor`, or `all`), separated by commas:
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp install-skill --agent claude,cursor
+```
+
+Other options:
+
+- `--yes`: install for every agent found, without asking
+- `--dir <folder>`: install into any other skills folder
+
+Where it goes:
+
+| Agent | Skill folder (found automatically) |
+|-------|------------------------------------|
+| Claude Code | `~/.claude/skills` |
+| Codex CLI | `~/.codex/skills` |
+| Gemini CLI | `~/.gemini/skills` |
+| GitHub Copilot (VS Code, CLI) | `~/.copilot/skills` |
+| Cursor | reads the Claude Code or Codex folder, otherwise `~/.cursor/skills` |
+
+Update it by running the install command again. Remove it with:
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp uninstall-skill
+```
+
+</details>
+
+### As an MCP server instead
+
+For Claude Desktop, Windsurf, or any client you would rather give native tools.
+
+**Claude Code**, one command:
+
+```bash
+claude mcp add repo-context --scope user -- npx -y github:Elarionitis/repo-context-mcp
+```
+
+**Cursor** (`~/.cursor/mcp.json`), **Claude Desktop**, **Windsurf** and **Gemini CLI** use the same shape:
+
+```json
+{
+  "mcpServers": {
+    "repo-context": {
+      "command": "npx",
+      "args": ["-y", "github:Elarionitis/repo-context-mcp"]
+    }
+  }
+}
+```
+
+<details>
+<summary>VS Code Copilot and Codex CLI</summary>
+
+**VS Code Copilot** (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "repo-context": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "github:Elarionitis/repo-context-mcp"]
+    }
+  }
+}
+```
+
+**Codex CLI** (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.repo-context]
+command = "npx"
+args = ["-y", "github:Elarionitis/repo-context-mcp"]
+```
+
+</details>
+
+Restart your agent after adding it. The first start downloads and builds the server, which takes about 10 to 20 seconds.
+
+### Or try it with no install at all
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp analyze expressjs/express
+```
+
+Every tool works this way. The commands are under [Command line](#command-line).
+
+### GitHub token (optional)
+
+You often will not need one. `analyze` uses 3 API requests, `tree` and `find` use 1, and `read` uses none, because file contents come from `raw.githubusercontent.com`. Results are cached for 10 minutes.
+
+Set `GITHUB_TOKEN` (or `GH_TOKEN`) to:
+
+- read private repositories
+- use `search_repo_code`
+- raise the rate limit from 60 to 5,000 API requests per hour
+
+A [fine-grained token](https://github.com/settings/personal-access-tokens) with read-only access is enough. Add it to the `env` block of your MCP config, or with Claude Code:
+
+```bash
+claude mcp add repo-context --scope user -e GITHUB_TOKEN=your_token -- npx -y github:Elarionitis/repo-context-mcp
+```
+
+## Why
+
+Coding agents do well with code they can see. When you ask about a library or a project that isn't on your machine, they guess from old training data, or you end up pasting READMEs and file trees into the chat.
+
+Repo Context fetches that context live from GitHub and shapes it for an LLM: compact markdown, noise removed, and the details an agent actually needs to start working. No LLM API is involved. It's fast, deterministic and free to run.
+
+<details>
+<summary>What one <code>analyze</code> call returns</summary>
 
 ```text
 > Analyze vercel/next.js
@@ -70,165 +234,7 @@ Install: `pnpm install`
 - get_repo_tree with path "packages" to see the code layout
 ```
 
-## Why
-
-Coding agents do well with code they can see. When you ask about a library or a project that isn't on your machine, they guess from old training data, or you end up pasting READMEs and file trees into the chat.
-
-Repo Context fetches that context live from GitHub and shapes it for an LLM: compact markdown, noise removed, and the details an agent actually needs to start working. No LLM API is involved. It's fast, deterministic and free to run.
-
-## Install
-
-### Option 1: Skill (easiest, works for most agents)
-
-**Step 1. Install Node.js** (skip if you already have it)
-
-Download the LTS version from [nodejs.org](https://nodejs.org) and install it. To check, open a terminal and run `node --version`. You need 20 or higher.
-
-**Step 2. Open a terminal**
-
-- **Mac:** press `Cmd + Space`, type **Terminal**, press Enter
-- **Windows:** press the Windows key, type **PowerShell**, press Enter
-- **Linux:** open your terminal app
-
-**Step 3. Paste this command and press Enter**
-
-```bash
-npx -y github:Elarionitis/repo-context-mcp install-skill
-```
-
-It finds the AI agents on your computer by itself, so you don't need to know any folder paths. If you have more than one, it asks which ones to install for:
-
-```text
-Found these AI agents on your computer:
-  1. Claude Code
-  2. Gemini CLI
-  3. Cursor
-
-Press Enter to install for all, or type numbers (e.g. 1,3): 1
-
-Installed the repo-context skill for:
-  ✓ Claude Code     ~/.claude/skills/repo-context
-```
-
-**Want just one agent?** Name it in the command instead:
-
-| Agent | Command |
-|-------|---------|
-| Claude Code | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent claude` |
-| Cursor | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent cursor` |
-| Codex CLI | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent codex` |
-| Gemini CLI | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent gemini` |
-| GitHub Copilot | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent copilot` |
-
-For several, separate them with commas: `--agent claude,cursor`.
-
-The first run takes about 20 seconds while it downloads.
-
-**Step 4. Restart your agent and try it**
-
-Close and reopen your agent, then ask:
-
-> Analyze expressjs/express
-
-Done. From now on, mention any GitHub repo and your agent will use it.
-
-<details>
-<summary>Where it installs, more options, and uninstalling</summary>
-
-| Agent | Skill folder (found automatically) |
-|-------|------------------------------------|
-| Claude Code | `~/.claude/skills` |
-| Codex CLI | `~/.codex/skills` |
-| Gemini CLI | `~/.gemini/skills` |
-| GitHub Copilot (VS Code, CLI) | `~/.copilot/skills` |
-| Cursor | reads the Claude Code or Codex folder, otherwise `~/.cursor/skills` |
-
-Other options:
-
-- `--yes`: install for every agent found, without asking
-- `--agent all`: install for all supported agents, even ones not found
-- `--dir <folder>`: install into any other skills folder
-
-Remove it again:
-
-```bash
-npx -y github:Elarionitis/repo-context-mcp uninstall-skill
-```
-
-Updating is the same as installing: run the install command again.
-
 </details>
-
-The skill is also listed free on [Agensi](https://www.agensi.io/skills/YOUR-SKILL-LINK) if you prefer installing from a marketplace.
-
-### Option 2: MCP server (for Claude Desktop, Windsurf, or native tools)
-
-**Claude Code**: one command:
-
-```bash
-claude mcp add repo-context --scope user -- npx -y github:Elarionitis/repo-context-mcp
-```
-
-**Cursor** (`~/.cursor/mcp.json`), **Claude Desktop**, **Windsurf** and **Gemini CLI**: add this to the MCP config file:
-
-```json
-{
-  "mcpServers": {
-    "repo-context": {
-      "command": "npx",
-      "args": ["-y", "github:Elarionitis/repo-context-mcp"]
-    }
-  }
-}
-```
-
-**VS Code Copilot** (`.vscode/mcp.json`):
-
-```json
-{
-  "servers": {
-    "repo-context": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "github:Elarionitis/repo-context-mcp"]
-    }
-  }
-}
-```
-
-**Codex CLI** (`~/.codex/config.toml`):
-
-```toml
-[mcp_servers.repo-context]
-command = "npx"
-args = ["-y", "github:Elarionitis/repo-context-mcp"]
-```
-
-Restart your agent after adding it. The first start downloads and builds the server, which takes about 10 to 20 seconds.
-
-### Option 3: Just try it in a terminal
-
-```bash
-npx -y github:Elarionitis/repo-context-mcp analyze expressjs/express
-```
-
-More commands are listed under [Command line](#command-line).
-
-### GitHub token (optional)
-
-Set `GITHUB_TOKEN` (or `GH_TOKEN`) to:
-
-- read private repositories
-- use `search_repo_code`
-- raise the rate limit from 60 to 5,000 API requests per hour
-
-A [fine-grained token](https://github.com/settings/personal-access-tokens) with read-only access is enough. Add it to the `env` block of your MCP config, or with Claude Code:
-
-```bash
-claude mcp add repo-context --scope user -e GITHUB_TOKEN=your_token -- npx -y github:Elarionitis/repo-context-mcp
-```
-
-You often won't need one. `analyze` uses 3 API requests, `tree` and `find` use 1, and `read` uses none, because file contents come from `raw.githubusercontent.com`. Results are cached for 10 minutes.
 
 ## Tools
 
