@@ -78,25 +78,75 @@ Repo Context fetches that context live from GitHub and shapes it for an LLM: com
 
 ## Install
 
-All you need is [Node.js 20+](https://nodejs.org). Pick **one** of these.
+### Option 1: Skill (easiest, works for most agents)
 
-### Option 1: Skill (easiest, one command)
+**Step 1. Install Node.js** (skip if you already have it)
+
+Download the LTS version from [nodejs.org](https://nodejs.org) and install it. To check, open a terminal and run `node --version`. You need 20 or higher.
+
+**Step 2. Open a terminal**
+
+- **Mac:** press `Cmd + Space`, type **Terminal**, press Enter
+- **Windows:** press the Windows key, type **PowerShell**, press Enter
+- **Linux:** open your terminal app
+
+**Step 3. Paste this command and press Enter**
 
 ```bash
 npx -y github:Elarionitis/repo-context-mcp install-skill
 ```
 
-This installs the skill into `~/.claude/skills/repo-context`. Restart Claude Code and ask *"Analyze expressjs/express"*. That's it: no config, no API key.
+It finds the AI agents on your computer and installs the skill into each one, so you don't need to know any folder paths. You'll see something like:
 
-For an agent that reads skills from a different folder, pass it with `--dir`:
+```text
+Installed the repo-context skill for:
+  ✓ Claude Code     ~/.claude/skills/repo-context
+  ✓ Gemini CLI      ~/.gemini/skills/repo-context
+  ✓ Cursor          (uses ~/.claude/skills)
+```
+
+The first run takes about 20 seconds while it downloads.
+
+**Step 4. Restart your agent and try it**
+
+Close and reopen your agent, then ask:
+
+> Analyze expressjs/express
+
+Done. From now on, mention any GitHub repo and your agent will use it.
+
+<details>
+<summary>Supported agents, choosing agents, and uninstalling</summary>
+
+| Agent | Skill folder (found automatically) |
+|-------|------------------------------------|
+| Claude Code | `~/.claude/skills` |
+| Codex CLI | `~/.codex/skills` |
+| Gemini CLI | `~/.gemini/skills` |
+| GitHub Copilot (VS Code, CLI) | `~/.copilot/skills` |
+| Cursor | reads the Claude Code or Codex folder, otherwise `~/.cursor/skills` |
+
+Install for specific agents only:
 
 ```bash
-npx -y github:Elarionitis/repo-context-mcp install-skill --dir path/to/your/agent/skills
+npx -y github:Elarionitis/repo-context-mcp install-skill --agent cursor,codex
 ```
+
+Use `--agent all` for every agent, or `--dir <folder>` for any other skills folder.
+
+Remove it again:
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp uninstall-skill
+```
+
+Updating is the same as installing: run the install command again.
+
+</details>
 
 The skill is also listed free on [Agensi](https://www.agensi.io/skills/YOUR-SKILL-LINK) if you prefer installing from a marketplace.
 
-### Option 2: MCP server (native tools in any MCP client)
+### Option 2: MCP server (for Claude Desktop, Windsurf, or native tools)
 
 **Claude Code**: one command:
 
@@ -229,7 +279,7 @@ src/
   readme.ts    README cleanup, intro and setup sections
   tree.ts      file tree rendering and file search
   parse.ts     repo name and URL parsing
-  install.ts   install-skill command
+  install.ts   install-skill and uninstall-skill (finds agents automatically)
 test/          node:test tests, no network needed
 scripts/       build-skill.mjs bundles the skill script
 skill/         agent skill (SKILL.md, setup guide, logo, listing copy)

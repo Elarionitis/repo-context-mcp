@@ -1,5 +1,5 @@
 import { analyzeRepo, findRepoFiles, readRepoFile, repoActivity, repoTree, searchRepoCode } from "./context.ts";
-import { installSkill } from "./install.ts";
+import { installSkill, uninstallSkill } from "./install.ts";
 import { VERSION } from "./version.ts";
 
 const HELP = `repo-context-mcp ${VERSION}
@@ -14,8 +14,13 @@ Or use it from the terminal:
   repo-context-mcp search   <repo> <query> [--limit <n>]
   repo-context-mcp activity <repo> [--commits <n>] [--ref <branch>]
 
-  repo-context-mcp install-skill [--dir <skills folder>]
-    Installs the agent skill. Default folder: ~/.claude/skills (Claude Code)
+  repo-context-mcp install-skill [--agent <name>] [--dir <folder>]
+    Installs the agent skill for every agent found on this computer.
+    --agent picks agents instead: claude, codex, gemini, copilot, cursor or all
+    --dir installs into any other skills folder
+
+  repo-context-mcp uninstall-skill [--dir <folder>]
+    Removes the skill again.
 
 <repo> is owner/name or a github.com URL.
 Set GITHUB_TOKEN for private repos, code search and higher rate limits.
@@ -66,7 +71,11 @@ export async function runCli(args: string[]): Promise<number> {
 
   try {
     if (command === "install-skill") {
-      console.log(installSkill(flags.dir));
+      console.log(installSkill({ agent: flags.agent, dir: flags.dir }));
+      return 0;
+    }
+    if (command === "uninstall-skill") {
+      console.log(uninstallSkill({ dir: flags.dir }));
       return 0;
     }
 
