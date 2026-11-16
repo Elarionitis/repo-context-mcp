@@ -63,11 +63,12 @@ Tool arguments map to script flags: `start_line` is `--start`, `end_line` is `--
 - For "is this maintained", use `activity` and look at the last push date, release date and whether the repo is archived.
 - To compare libraries, run `analyze` on each and compare stack, activity, license and stars side by side.
 - Branch names with `/` in them can't be read from a URL. Pass them as `ref` / `--ref` instead.
-- With MCP, results are cached for 5 minutes, so several calls on the same repo are cheap.
+- Results are cached for 10 minutes, including between script runs, so repeating a command on the same repo is free.
+- `read` costs no API requests, so reading many files is fine even without a token.
 
 ## Errors
 
-- **Rate limit reached:** without a token GitHub allows 60 API requests per hour (`analyze` uses 3). Ask the user to set `GITHUB_TOKEN` for 5,000 per hour. See [reference/setup.md](reference/setup.md).
+- **Rate limit reached:** without a token GitHub allows 60 API requests per hour. `analyze` uses 3, `tree` and `find` use 1, and `read` uses none. `read` keeps working after the limit is hit, so carry on with it. Don't switch to `curl` or `git clone`. Mention that the user can set `GITHUB_TOKEN` for 5,000 per hour (see [reference/setup.md](reference/setup.md)).
 - **Not found:** the repo is private or the name is wrong. Private repos need `GITHUB_TOKEN` with read access.
 - **Code search needs a token:** fall back to `find` and `read`.
 - **`node: command not found`:** the user needs Node.js 20+ from https://nodejs.org.

@@ -32,14 +32,28 @@ async function resolve(input: string, ref?: string): Promise<Target> {
   return { repo, info, ref: ref || repo.ref || info.default_branch };
 }
 
-async function loadTree(t: Target): Promise<Tree> {
+async function loadTree(repo: ParsedRepo, ref?: string): Promise<Tree> {
   try {
-    return await getTree(t.repo, t.ref);
+    return await getTree(repo, ref);
   } catch (err) {
     // 409 means the repository has no commits yet
     if (err instanceof GitHubError && err.status === 409) return { entries: [], truncated: false };
     throw err;
   }
+}
+
+// Tree, find and read don't need the repo details, so they skip that API
+// call and use HEAD (the default branch) when no ref is given.
+interface Light {
+  repo: ParsedRepo;
+  ref?: string;
+  name: string;
+}
+
+function light(input: string, ref?: string): Light {
+  const repo = parseRepo(input);
+  const r = ref || repo.ref;
+  return { repo, ref: r, name: `${repo.owner}/${repo.repo}${r ? ` @ ${r}` : ""}` };
 }
 
 function title(t: Target): string {
@@ -144,7 +158,7 @@ export async function analyzeRepo(input: string, opts: { ref?: string } = {}): P
   const t = await resolve(input, opts.ref);
   const { info } = t;
 
-  const [languages, tree] = await Promise.all([getLanguages(t.repo).catch(() => ({})), loadTree(t)]);
+  const [languages, tree] = await Promise.all([getLanguages(t.repo).catch(() => ({})), loadTree(t.repo, t.ref)]);
   const paths = filePaths(tree.entries);
 
   // files that fail to load are just skipped, they shouldn't break the summary
@@ -299,17 +313,17 @@ export async function repoTree(
   input: string,
   opts: { path?: string; depth?: number; ref?: string } = {},
 ): Promise<string> {
-  const t = await resolve(input, opts.ref);
-  const tree = await loadTree(t);
+  const t = light(input, opts.ref);
+  const tree = await loadTree(t.repo, t.ref);
   const path = (opts.path ?? t.repo.path ?? "").replace(/^\/+|\/+$/g, "");
   const depth = opts.depth ?? 3;
 
   const body = renderTree(tree.entries, { root: path, depth });
   if (!body) {
-    return `No files found under "${path || "/"}" in ${title(t)}. Check the path with find_repo_files.`;
+    return `No files found under "${path || "/"}" in ${t.name}. Check the path with find_repo_files.`;
   }
 
-  const out = [`# ${title(t)}: ${path ? `${path}/` : "/"} (depth ${depth})`, ""];
+  const out = [`# ${t.name}: ${path ? `${path}/` : "/"} (depth ${depth})`, ""];
   if (tree.truncated) out.push("Note: the repository is very large, GitHub only returned part of the file list.", "");
   out.push("```", body, "```");
   return out.join("\n");
@@ -322,13 +336,13 @@ export async function readRepoFile(
   path: string,
   opts: { ref?: string; startLine?: number; endLine?: number } = {},
 ): Promise<string> {
-  const t = await resolve(input, opts.ref);
+  const t = light(input, opts.ref);
   const clean = path.replace(/^\/+/, "");
   const text = await getFile(t.repo, clean, t.ref);
 
   if (text === null) {
     const name = clean.slice(clean.lastIndexOf("/") + 1);
-    return `File "${clean}" not found in ${title(t)}. Try find_repo_files with "${name}".`;
+    return `File "${clean}" not found in ${t.name}. Try find_repo_files with "${name}".`;
   }
   if (text.includes("\u0000")) {
     return `"${clean}" is a binary file (${plural(text.length, "byte")}), not shown.`;
@@ -348,7 +362,7 @@ export async function readRepoFile(
     .map((line, i) => `${String(start + i).padStart(width)}  ${line.length > 500 ? line.slice(0, 500) + " ..." : line}`);
 
   const ext = clean.includes(".") ? clean.slice(clean.lastIndexOf(".") + 1) : "";
-  const out = [`# ${clean} (${title(t)})`, "", "```" + ext, ...shown, "```"];
+  const out = [`# ${clean} (${t.name})`, "", "```" + ext, ...shown, "```"];
   if (start > 1 || end < total) {
     out.push(`Lines ${start}-${end} of ${total}.${end < total ? ` Use start_line ${end + 1} to read more.` : ""}`);
   }
@@ -360,14 +374,14 @@ export async function findRepoFiles(
   pattern: string,
   opts: { ref?: string; limit?: number } = {},
 ): Promise<string> {
-  const t = await resolve(input, opts.ref);
-  const tree = await loadTree(t);
+  const t = light(input, opts.ref);
+  const tree = await loadTree(t.repo, t.ref);
   const matches = findFiles(filePaths(tree.entries), pattern);
   const limit = opts.limit ?? 50;
 
-  if (matches.length === 0) return `No files matching "${pattern}" in ${title(t)}.`;
+  if (matches.length === 0) return `No files matching "${pattern}" in ${t.name}.`;
 
-  const out = [`# Files matching "${pattern}" in ${title(t)}`, ""];
+  const out = [`# Files matching "${pattern}" in ${t.name}`, ""];
   out.push(...matches.slice(0, limit).map((p) => `- ${p}`));
   if (matches.length > limit) out.push(`- ... ${matches.length - limit} more, use a narrower pattern`);
   if (tree.truncated) out.push("", "Note: the repository is very large, some files may be missing from the results.");

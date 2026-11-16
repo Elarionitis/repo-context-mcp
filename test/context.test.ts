@@ -41,7 +41,7 @@ const routes: Record<string, unknown> = {
   }),
   "https://raw.githubusercontent.com/acme/shop/main/README.md":
     "# Shop\n\nA tiny shop used to test the summary output of this tool end to end.\n\n## Getting started\n\nRun npm install.\n",
-  "https://raw.githubusercontent.com/acme/shop/main/src/index.ts": "line one\nline two\nline three\n",
+  "https://raw.githubusercontent.com/acme/shop/HEAD/src/index.ts": "line one\nline two\nline three\n",
 };
 
 const realFetch = globalThis.fetch;
@@ -79,6 +79,28 @@ test("readRepoFile numbers lines and supports ranges", async () => {
   const out = await readRepoFile("acme/shop", "src/index.ts", { startLine: 2, endLine: 2 });
   assert.match(out, /```ts\n2  line two\n```/);
   assert.match(out, /Lines 2-2 of 3\. Use start_line 3/);
+});
+
+test("reading a file uses no API requests", async () => {
+  const calls: string[] = [];
+  const fake = globalThis.fetch;
+  globalThis.fetch = ((input: string | URL) => {
+    calls.push(String(input));
+    return fake(input);
+  }) as typeof fetch;
+
+  await readRepoFile("acme/shop", "src/index.ts");
+  assert.deepEqual(calls, ["https://raw.githubusercontent.com/acme/shop/HEAD/src/index.ts"]);
+});
+
+test("results are reused between runs", async () => {
+  await readRepoFile("acme/shop", "src/index.ts");
+  // drop the network, the second read must come from the cache
+  globalThis.fetch = (async () => {
+    throw new Error("network used");
+  }) as typeof fetch;
+  const out = await readRepoFile("acme/shop", "src/index.ts");
+  assert.match(out, /line two/);
 });
 
 test("missing repo gives a helpful error", async () => {

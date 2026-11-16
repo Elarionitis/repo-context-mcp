@@ -1,9 +1,13 @@
+import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { RepoRef } from "./parse.ts";
 
 const API = "https://api.github.com";
 const RAW = "https://raw.githubusercontent.com";
 const TIMEOUT_MS = 15_000;
-const CACHE_TTL_MS = 5 * 60_000;
+const CACHE_TTL_MS = 10 * 60_000;
 
 export class GitHubError extends Error {
   status?: number;
@@ -78,22 +82,56 @@ export function getToken(): string | undefined {
   return process.env.GITHUB_TOKEN || process.env.GH_TOKEN || undefined;
 }
 
-// Small in-memory cache so the agent can call several tools on the same repo
-// without spending the rate limit again.
-const cache = new Map<string, { expires: number; value: Promise<unknown> }>();
+// Results are cached in memory and in a temp folder. The disk part matters
+// for the CLI: every command is a new process, and without it each file
+// read would spend one more request from GitHub's hourly limit.
+const memory = new Map<string, { expires: number; value: Promise<unknown> }>();
+const cacheDir = join(tmpdir(), `repo-context-cache-${process.getuid?.() ?? "user"}`);
+
+function diskPath(key: string): string {
+  // private repo content must not be shared with token-less runs
+  const scope = getToken() ? createHash("sha256").update(getToken()!).digest("hex").slice(0, 12) : "public";
+  return join(cacheDir, createHash("sha256").update(`${scope}:${key}`).digest("hex") + ".json");
+}
+
+function readDisk(key: string): { value: unknown } | undefined {
+  try {
+    const entry = JSON.parse(readFileSync(diskPath(key), "utf8")) as { expires: number; value: unknown };
+    return entry.expires > Date.now() ? { value: entry.value } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeDisk(key: string, value: unknown): void {
+  try {
+    mkdirSync(cacheDir, { recursive: true, mode: 0o700 });
+    writeFileSync(diskPath(key), JSON.stringify({ expires: Date.now() + CACHE_TTL_MS, value }), { mode: 0o600 });
+  } catch {
+    // caching is best effort
+  }
+}
 
 function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
-  const hit = cache.get(key);
+  const hit = memory.get(key);
   if (hit && hit.expires > Date.now()) return hit.value as Promise<T>;
 
-  const value = load();
-  cache.set(key, { expires: Date.now() + CACHE_TTL_MS, value });
-  value.catch(() => cache.delete(key));
+  const disk = readDisk(key);
+  const value = disk
+    ? Promise.resolve(disk.value as T)
+    : load().then((v) => {
+        writeDisk(key, v);
+        return v;
+      });
+
+  memory.set(key, { expires: Date.now() + CACHE_TTL_MS, value });
+  value.catch(() => memory.delete(key));
   return value;
 }
 
 export function clearCache(): void {
-  cache.clear();
+  memory.clear();
+  rmSync(cacheDir, { recursive: true, force: true });
 }
 
 async function request(url: string, accept = "application/vnd.github+json"): Promise<Response> {
@@ -123,7 +161,9 @@ async function fail(res: Response, what: string): Promise<never> {
   if (limited) {
     const reset = Number(res.headers.get("x-ratelimit-reset"));
     const when = reset ? ` (resets at ${new Date(reset * 1000).toLocaleTimeString()})` : "";
-    const hint = hasToken ? "" : " Set GITHUB_TOKEN to raise the limit from 60 to 5,000 requests per hour.";
+    const hint = hasToken
+      ? ""
+      : " Set GITHUB_TOKEN to raise the limit from 60 to 5,000 requests per hour. Reading files still works without it.";
     throw new GitHubError(`GitHub rate limit reached${when}.${hint}`, res.status);
   }
 
@@ -169,10 +209,11 @@ export function getLanguages(r: RepoRef): Promise<Record<string, number>> {
   return getJson(`${repoPath(r)}/languages`, "Language stats");
 }
 
-export async function getTree(r: RepoRef, ref: string): Promise<Tree> {
+// ref defaults to HEAD, which GitHub resolves to the default branch
+export async function getTree(r: RepoRef, ref = "HEAD"): Promise<Tree> {
   const data = await getJson<{ tree: TreeEntry[]; truncated: boolean }>(
     `${repoPath(r)}/git/trees/${encodeURIComponent(ref)}?recursive=1`,
-    `Branch or commit "${ref}"`,
+    ref === "HEAD" ? `Repository ${r.owner}/${r.repo}` : `Branch or commit "${ref}"`,
   );
   return {
     entries: data.tree.map((e) => ({ path: e.path, type: e.type, size: e.size })),
@@ -184,10 +225,10 @@ export async function getTree(r: RepoRef, ref: string): Promise<Tree> {
 // Without a token we use raw.githubusercontent.com, which doesn't count
 // against the API rate limit. With a token we use the contents API so
 // private repos work too.
-export function getFile(r: RepoRef, path: string, ref: string): Promise<string | null> {
+export function getFile(r: RepoRef, path: string, ref = "HEAD"): Promise<string | null> {
   return cached(`file:${r.owner}/${r.repo}@${ref}:${path}`, async () => {
     const url = getToken()
-      ? `${API}${repoPath(r)}/contents/${encodePath(path)}?ref=${encodeURIComponent(ref)}`
+      ? `${API}${repoPath(r)}/contents/${encodePath(path)}${ref === "HEAD" ? "" : `?ref=${encodeURIComponent(ref)}`}`
       : `${RAW}/${r.owner}/${r.repo}/${encodePath(ref)}/${encodePath(path)}`;
 
     const res = await request(url, "application/vnd.github.raw+json");
