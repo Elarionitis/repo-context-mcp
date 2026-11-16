@@ -1,8 +1,29 @@
-# Repo Context MCP
+<p align="center">
+  <img src="skill/logo.png" alt="Repo Context logo" width="96" height="96">
+</p>
 
-Give your AI coding agent a clear picture of any GitHub repository without cloning it.
+<h1 align="center">Repo Context</h1>
 
-One call returns the tech stack, folder layout, entry points, install and run commands, agent instruction files and a README summary. Five more tools let the agent browse the tree, find files, read code, search, and check recent activity.
+<p align="center">
+  <b>Your AI coding agent can now understand any GitHub repository without cloning it.</b>
+</p>
+
+<p align="center">
+  <a href="https://www.agensi.io/skills/YOUR-SKILL-LINK">Get the skill on Agensi (free)</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#tools">Tools</a> ·
+  <a href="#command-line">CLI</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Elarionitis/repo-context-mcp/actions/workflows/ci.yml"><img src="https://github.com/Elarionitis/repo-context-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT license">
+  <img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen" alt="Node 20+">
+</p>
+
+---
+
+Paste a GitHub link or `owner/name` into Claude Code, Cursor or Copilot. One call gives your agent the tech stack, folder layout, entry points, run commands, agent instruction files and a README summary. Five more tools let it browse the tree, find files, read code, search, and check recent activity.
 
 Works with Claude Code, Cursor, VS Code Copilot, Claude Desktop, Windsurf, Codex CLI, Gemini CLI and any other MCP client, and as a plain command line tool for agents that can run shell commands.
 
@@ -44,9 +65,6 @@ Install: `pnpm install`
 - `pnpm build` - turbo run build ...
 - `pnpm test` - scripts/run-jest.sh ...
 
-## README (readme.md)
-...
-
 ## Next steps
 - read_repo_file "AGENTS.md" for the maintainers' agent rules
 - get_repo_tree with path "packages" to see the code layout
@@ -54,9 +72,86 @@ Install: `pnpm install`
 
 ## Why
 
-Coding agents do well with code they can see. When you ask about a library or a project that isn't on your machine, they guess, or you end up pasting READMEs and file trees into the chat.
+Coding agents do well with code they can see. When you ask about a library or a project that isn't on your machine, they guess from old training data, or you end up pasting READMEs and file trees into the chat.
 
-Repo Context fetches that context straight from GitHub and shapes it for an LLM: compact markdown, noise removed, and the details an agent actually needs to start working.
+Repo Context fetches that context live from GitHub and shapes it for an LLM: compact markdown, noise removed, and the details an agent actually needs to start working. No LLM API is involved. It's fast, deterministic and free to run.
+
+## Install
+
+You need Node.js 20 or newer.
+
+### Option 1: Agent skill (recommended)
+
+Get **Repo Context** free on [Agensi](https://www.agensi.io/skills/YOUR-SKILL-LINK). The skill teaches your agent when and how to use the tools, and ships the tool inside it, so there's nothing else to install.
+
+Or build the skill yourself from this repo:
+
+```bash
+npm install
+npm run package:skill
+unzip -o repo-context-skill.zip -d ~/.claude/skills/
+```
+
+### Option 2: MCP server
+
+**Claude Code**
+
+```bash
+claude mcp add repo-context --scope user -- npx -y github:Elarionitis/repo-context-mcp
+```
+
+**Cursor** (`~/.cursor/mcp.json`), **Claude Desktop**, **Windsurf** and **Gemini CLI** use the same shape:
+
+```json
+{
+  "mcpServers": {
+    "repo-context": {
+      "command": "npx",
+      "args": ["-y", "github:Elarionitis/repo-context-mcp"]
+    }
+  }
+}
+```
+
+**VS Code Copilot** (`.vscode/mcp.json`):
+
+```json
+{
+  "servers": {
+    "repo-context": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "github:Elarionitis/repo-context-mcp"]
+    }
+  }
+}
+```
+
+**Codex CLI** (`~/.codex/config.toml`):
+
+```toml
+[mcp_servers.repo-context]
+command = "npx"
+args = ["-y", "github:Elarionitis/repo-context-mcp"]
+```
+
+The first start downloads and builds the server, which takes about 10 seconds.
+
+### GitHub token (optional)
+
+Set `GITHUB_TOKEN` (or `GH_TOKEN`) to:
+
+- read private repositories
+- use `search_repo_code`
+- raise the rate limit from 60 to 5,000 API requests per hour
+
+A [fine-grained token](https://github.com/settings/personal-access-tokens) with read-only access is enough. Add it to the `env` block of your MCP config, or with Claude Code:
+
+```bash
+claude mcp add repo-context --scope user -e GITHUB_TOKEN=your_token -- npx -y github:Elarionitis/repo-context-mcp
+```
+
+You often won't need one. `analyze` uses 3 API requests, `tree` and `find` use 1, and `read` uses none, because file contents come from `raw.githubusercontent.com`. Results are cached for 10 minutes.
 
 ## Tools
 
@@ -79,42 +174,26 @@ Every tool takes `repo` as `owner/name` or any github.com URL (including `/tree/
 - **Infra:** Docker, Compose, GitHub Actions, GitLab CI, Terraform, Helm, Kubernetes, Vercel, Netlify, Fly.io, Cloudflare Workers
 - **Agent files:** `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules`, `.cursor/rules`, `.windsurfrules`, `.github/copilot-instructions.md`
 
-## How it ships
-
-The product is the agent skill in [`skill/repo-context`](skill/repo-context), sold on Agensi. `npm run package:skill` does two things:
-
-1. Bundles the whole server and CLI into one readable file, `skill/repo-context/scripts/repo-context.mjs`, with license notices for the bundled packages.
-2. Zips the skill folder into `repo-context-skill.zip` in the project root. That zip is the file you upload.
-
-Buyers only need Node.js 20+. Their agent runs the bundled script from the skill folder, or they can register it as an MCP server ([setup.md](skill/repo-context/reference/setup.md) has configs for Claude Code, Cursor, VS Code, Claude Desktop, Windsurf, Codex CLI and Gemini CLI).
-
-### Releasing an update
-
-1. Make the change, then run `npm test`.
-2. Bump `version` in `package.json`. The bundled script reports this version.
-3. Run `npm run package:skill`.
-4. Upload the new `repo-context-skill.zip` on Agensi.
-
-### GitHub token
-
-Set `GITHUB_TOKEN` (or `GH_TOKEN`) to read private repos, use code search, and raise the rate limit from 60 to 5,000 API requests per hour. Without a token, file contents come from `raw.githubusercontent.com`, which doesn't count toward the limit. A full analyze costs 3 API requests.
-
 ## Command line
 
+The same tools work from a terminal:
+
 ```bash
-node dist/index.js analyze vercel/next.js
-node dist/index.js tree facebook/react packages --depth 2
-node dist/index.js find tokio-rs/axum "*.toml"
-node dist/index.js read https://github.com/expressjs/express/blob/master/index.js
-node dist/index.js search facebook/react "useSyncExternalStore"
-node dist/index.js activity fastapi/fastapi --commits 5
+npx -y github:Elarionitis/repo-context-mcp analyze vercel/next.js
+npx -y github:Elarionitis/repo-context-mcp tree facebook/react packages --depth 2
+npx -y github:Elarionitis/repo-context-mcp find tokio-rs/axum "*.toml"
+npx -y github:Elarionitis/repo-context-mcp read https://github.com/expressjs/express/blob/master/index.js
+npx -y github:Elarionitis/repo-context-mcp search facebook/react "useSyncExternalStore"
+npx -y github:Elarionitis/repo-context-mcp activity fastapi/fastapi --commits 5
 ```
 
-Run `node dist/index.js help` for all options. With no arguments, it starts the MCP server on stdio.
+Run with `help` for all options. With no arguments, it starts the MCP server on stdio.
 
 ## Development
 
 ```bash
+git clone https://github.com/Elarionitis/repo-context-mcp.git
+cd repo-context-mcp
 npm install
 npm run build
 npm test
@@ -122,7 +201,7 @@ npm test
 
 - `npm run dev`: run straight from `src/` (Node 22.18+ runs TypeScript directly)
 - `npm run inspect`: open the MCP Inspector against the built server
-- `node dist/index.js analyze owner/name`: try the CLI locally
+- `npm run package:skill`: bundle the tool into `skill/repo-context/scripts/` and build `repo-context-skill.zip`
 
 ### Project layout
 
@@ -139,8 +218,18 @@ src/
   parse.ts     repo name and URL parsing
 test/          node:test tests, no network needed
 scripts/       build-skill.mjs bundles the skill script
-skill/         agent skill package (SKILL.md, setup guide, listing copy)
+skill/         agent skill (SKILL.md, setup guide, logo, listing copy)
 ```
+
+## Contributing
+
+Issues and pull requests are welcome. Good first contributions:
+
+- detection rules for more frameworks and tools (`src/detect.ts`)
+- GitLab or Bitbucket support
+- more tests
+
+Please run `npm test` before opening a PR.
 
 ## Limitations
 
@@ -155,4 +244,4 @@ Suhan Ramani ([@Elarionitis](https://github.com/Elarionitis))
 
 ## License
 
-Proprietary, all rights reserved. See [LICENSE](LICENSE).
+[MIT](LICENSE)

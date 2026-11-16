@@ -39,7 +39,8 @@ for (const input of Object.keys(result.metafile.inputs)) {
 
 const notices = [
   `repo-context ${pkg.version}`,
-  "Copyright (c) 2026 Suhan Ramani. All rights reserved.",
+  "Copyright (c) 2026 Suhan Ramani. MIT License.",
+  "Source: https://github.com/Elarionitis/repo-context-mcp",
   "",
   "This file includes the following open source packages:",
   "",

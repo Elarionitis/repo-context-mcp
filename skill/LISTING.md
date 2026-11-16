@@ -36,7 +36,13 @@ From there it can drill down with five more tools: browse the file tree, find fi
 
 **Works with** Claude Code, Cursor, VS Code Copilot, Claude Desktop, Windsurf, Codex CLI, Gemini CLI and any agent that can run shell commands. It can also run as a native MCP server for agents that support MCP.
 
-**Privacy and safety**: read-only. It only talks to GitHub and sends no telemetry. The bundled script is readable, not minified, so you can review it. An optional GitHub token adds private repos and code search, and it is only sent to api.github.com.
+**Free and open source**: MIT licensed, full source on GitHub: https://github.com/Elarionitis/repo-context-mcp
+
+**Privacy and safety**: read-only. It only talks to GitHub and sends no telemetry. The bundled script is readable, not minified, and matches the public source. An optional GitHub token adds private repos and code search, and it is only sent to api.github.com.
+
+## Price
+
+Free
 
 ## Tags
 

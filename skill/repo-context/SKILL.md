@@ -72,3 +72,7 @@ Tool arguments map to script flags: `start_line` is `--start`, `end_line` is `--
 - **Not found:** the repo is private or the name is wrong. Private repos need `GITHUB_TOKEN` with read access.
 - **Code search needs a token:** fall back to `find` and `read`.
 - **`node: command not found`:** the user needs Node.js 20+ from https://nodejs.org.
+
+## Source
+
+Open source under the MIT license: https://github.com/Elarionitis/repo-context-mcp. Bug reports and ideas are welcome there.
