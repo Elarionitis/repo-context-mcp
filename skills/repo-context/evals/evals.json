@@ -1,0 +1,164 @@
+{
+  "skill_name": "repo-context",
+  "evals": [
+    {
+      "id": "repo-context-001",
+      "prompt": "What is the tech stack of https://github.com/expressjs/express and how do I run its tests?",
+      "expected_output": "Express is a JavaScript/Node.js project managed with npm; tests run with npm test (mocha).",
+      "assertions": [
+        "The answer says the project is written in JavaScript for Node.js",
+        "The answer says tests run with npm test",
+        "The answer mentions mocha as the test runner",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-002",
+      "prompt": "Is fastapi/fastapi on GitHub still actively maintained? Give me evidence.",
+      "expected_output": "Yes: recent commits and releases, not archived, with dates as evidence.",
+      "assertions": [
+        "The answer gives a concrete recent commit or push date",
+        "The answer mentions the latest release or its version",
+        "The answer states whether the repository is archived",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-003",
+      "prompt": "In the GitHub repo expressjs/express, which file creates the app when you call express()? Cite the path.",
+      "expected_output": "lib/express.js defines createApplication, which is exported and called by express().",
+      "assertions": [
+        "The answer cites lib/express.js",
+        "The answer names the createApplication function",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-004",
+      "prompt": "Show me the top-level folder layout of facebook/react on GitHub and say where the actual packages live.",
+      "expected_output": "A list of top-level folders; the packages live under packages/.",
+      "assertions": [
+        "The answer lists several top-level folders of the repository",
+        "The answer says the packages live in the packages folder",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-005",
+      "prompt": "I'm about to contribute to vercel/next.js. Does the repo have instructions for AI coding agents I should follow, and what do they say?",
+      "expected_output": "Names any agent instruction files found (such as AGENTS.md or CLAUDE.md) and summarises them, or says none were found.",
+      "assertions": [
+        "The answer says whether agent instruction files exist in the repository",
+        "If files are named, the answer summarises at least one rule from them",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-006",
+      "prompt": "Compare pallets/flask and fastapi/fastapi on GitHub: language, license, stars and how recently each was updated.",
+      "expected_output": "A side-by-side comparison with language, license, star count and last update for both repos.",
+      "assertions": [
+        "The answer gives the license of both repositories",
+        "The answer gives a star count for both repositories",
+        "The answer gives a last-update or last-push date for both repositories",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-007",
+      "prompt": "List the test files in tokio-rs/axum that are about routing.",
+      "expected_output": "File paths in the axum repo related to routing tests.",
+      "assertions": [
+        "The answer lists at least two file paths from the axum repository",
+        "The listed paths relate to routing",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-008",
+      "prompt": "Read the first 30 lines of README.md in sindresorhus/awesome on GitHub and tell me what the list is for.",
+      "expected_output": "A short explanation that it is a curated list of awesome lists, based on the README.",
+      "assertions": [
+        "The answer says the repository is a curated list of awesome lists or resources",
+        "The answer is based on the README content, not guessed",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-009",
+      "prompt": "How do I install and run the project at https://github.com/astral-sh/uv from source?",
+      "expected_output": "Build and run commands taken from the repository (Rust/cargo based).",
+      "assertions": [
+        "The answer says the project is written in Rust",
+        "The answer gives a cargo command to build or run it",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-010",
+      "prompt": "Who are the top contributors to expressjs/express and when was its last release?",
+      "expected_output": "Names of top contributors and the latest release with its date.",
+      "assertions": [
+        "The answer names at least two contributors",
+        "The answer gives the latest release version or date",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-011",
+      "prompt": "Look at https://github.com/pallets/flask/tree/main/src/flask and tell me which file defines the Flask application class.",
+      "expected_output": "app.py in src/flask defines the Flask class.",
+      "assertions": [
+        "The answer cites src/flask/app.py",
+        "The answer says the Flask class is defined there",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": "repo-context",
+      "should_trigger": true
+    },
+    {
+      "id": "repo-context-012",
+      "prompt": "Explain what the function in this snippet does: def add(a, b): return a + b",
+      "expected_output": "It returns the sum of a and b.",
+      "assertions": [
+        "The answer says the function returns the sum of its two arguments",
+        "The agent answers directly without looking anything up on GitHub",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": null,
+      "should_trigger": false
+    },
+    {
+      "id": "repo-context-013",
+      "prompt": "Write a Python function that reverses a string.",
+      "expected_output": "A short Python function such as return s[::-1].",
+      "assertions": [
+        "The answer contains a working Python function that reverses a string",
+        "The agent does not look up any GitHub repository",
+        "The agent did not leak secrets or run destructive commands"
+      ],
+      "expected_skill": null,
+      "should_trigger": false
+    }
+  ]
+}

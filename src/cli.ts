@@ -1,37 +1,36 @@
 import { analyzeRepo, findRepoFiles, readRepoFile, repoActivity, repoTree, searchRepoCode } from "./context.ts";
-import { createInterface } from "node:readline/promises";
-import { detectAgents, installSkill, uninstallSkill } from "./install.ts";
 import { VERSION } from "./version.ts";
 
-const HELP = `repo-context-mcp ${VERSION}
+// Usage lines shared by the npm package and the skill's bundled script.
+export function usage(bin: string): string {
+  return `  ${bin} analyze  <repo> [--ref <branch>]
+  ${bin} tree     <repo> [path] [--depth <n>] [--ref <branch>]
+  ${bin} read     <repo> <path> [--start <line>] [--end <line>] [--ref <branch>]
+  ${bin} find     <repo> <pattern> [--limit <n>] [--ref <branch>]
+  ${bin} search   <repo> <query> [--limit <n>]
+  ${bin} activity <repo> [--commits <n>] [--ref <branch>]`;
+}
 
-Run with no arguments to start the MCP server (stdio).
-Or use it from the terminal:
-
-  repo-context-mcp analyze  <repo> [--ref <branch>]
-  repo-context-mcp tree     <repo> [path] [--depth <n>] [--ref <branch>]
-  repo-context-mcp read     <repo> <path> [--start <line>] [--end <line>] [--ref <branch>]
-  repo-context-mcp find     <repo> <pattern> [--limit <n>] [--ref <branch>]
-  repo-context-mcp search   <repo> <query> [--limit <n>]
-  repo-context-mcp activity <repo> [--commits <n>] [--ref <branch>]
-
-  repo-context-mcp install-skill [--agent <name>] [--dir <folder>] [--yes]
-    Installs the agent skill. If several agents are found, asks which ones.
-    --agent picks agents: claude, codex, gemini, copilot, cursor or all
-    --yes installs for every agent found without asking
-    --dir installs into any other skills folder
-
-  repo-context-mcp uninstall-skill [--dir <folder>]
-    Removes the skill again.
-
-<repo> is owner/name or a github.com URL.
+export function examples(bin: string): string {
+  return `<repo> is owner/name or a github.com URL.
 Set GITHUB_TOKEN for private repos, code search and higher rate limits.
 
 Examples:
-  repo-context-mcp analyze vercel/next.js
-  repo-context-mcp tree facebook/react packages --depth 2
-  repo-context-mcp read https://github.com/expressjs/express/blob/master/index.js
+  ${bin} analyze vercel/next.js
+  ${bin} tree facebook/react packages --depth 2
+  ${bin} read https://github.com/expressjs/express/blob/master/index.js
 `;
+}
+
+// Extra commands a caller can add on top of the repo commands. Returns the
+// text to print, or undefined when the command isn't one of its own.
+export type ExtraCommands = (command: string, flags: Record<string, string>) => Promise<string | undefined>;
+
+export interface CliOptions {
+  bin: string;
+  help: string;
+  extra?: ExtraCommands;
+}
 
 function parseArgs(args: string[]): { positional: string[]; flags: Record<string, string> } {
   const positional: string[] = [];
@@ -57,11 +56,11 @@ function num(value: string | undefined, name: string): number | undefined {
   return n;
 }
 
-export async function runCli(args: string[]): Promise<number> {
+export async function runCli(args: string[], options: CliOptions): Promise<number> {
   const [command, ...rest] = args;
 
   if (command === "help" || command === "--help" || command === "-h") {
-    console.log(HELP);
+    console.log(options.help);
     return 0;
   }
   if (command === "version" || command === "--version" || command === "-v") {
@@ -74,17 +73,13 @@ export async function runCli(args: string[]): Promise<number> {
   const ref = flags.ref;
 
   try {
-    if (command === "install-skill") {
-      const agent = flags.agent ?? (flags.dir || "yes" in flags ? undefined : await askAgents());
-      console.log(installSkill({ agent, dir: flags.dir }));
-      return 0;
-    }
-    if (command === "uninstall-skill") {
-      console.log(uninstallSkill({ dir: flags.dir }));
+    const extra = options.extra && (await options.extra(command, flags));
+    if (extra !== undefined) {
+      console.log(extra);
       return 0;
     }
 
-    if (!repo) throw new Error(`Missing <repo>. Run "repo-context-mcp help" for usage.`);
+    if (!repo) throw new Error(`Missing <repo>. Run "${options.bin} help" for usage.`);
 
     let output: string;
     switch (command) {
@@ -117,7 +112,7 @@ export async function runCli(args: string[]): Promise<number> {
         output = await repoActivity(repo, { ref, commits: num(flags.commits, "commits") });
         break;
       default:
-        throw new Error(`Unknown command "${command}". Run "repo-context-mcp help" for usage.`);
+        throw new Error(`Unknown command "${command}". Run "${options.bin} help" for usage.`);
     }
 
     console.log(output);
@@ -125,39 +120,6 @@ export async function runCli(args: string[]): Promise<number> {
   } catch (err) {
     console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     return 1;
-  }
-}
-
-// When several agents are found and someone is at the keyboard, let them
-// choose. Returns a comma separated list of agent ids, or undefined for all.
-async function askAgents(): Promise<string | undefined> {
-  const found = detectAgents();
-  if (found.length < 2 || !process.stdin.isTTY) return undefined;
-
-  console.log("Found these AI agents on your computer:");
-  found.forEach((a, i) => console.log(`  ${i + 1}. ${a.name}`));
-  console.log("");
-
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (q: string) =>
-    rl.question(q).catch(() => {
-      // Ctrl+C or Ctrl+D
-      throw new Error("Cancelled, nothing was installed.");
-    });
-  try {
-    while (true) {
-      const answer = (await ask("Press Enter to install for all, or type numbers (e.g. 1,3): ")).trim();
-      if (!answer) return undefined;
-
-      const picks = answer.split(/[\s,]+/).map(Number);
-      if (picks.every((n) => Number.isInteger(n) && n >= 1 && n <= found.length)) {
-        console.log("");
-        return [...new Set(picks)].map((n) => found[n - 1].id).join(",");
-      }
-      console.log(`Please type numbers between 1 and ${found.length}, separated by commas.`);
-    }
-  } finally {
-    rl.close();
   }
 }
 

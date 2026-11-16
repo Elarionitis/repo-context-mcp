@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="skill/logo.png" alt="Repo Context logo" width="96" height="96">
+  <img src="skills/logo.png" alt="Repo Context logo" width="96" height="96">
 </p>
 
 <h1 align="center">Repo Context</h1>
@@ -284,8 +284,9 @@ npm test
 
 - `npm run dev`: run straight from `src/` (Node 22.18+ runs TypeScript directly)
 - `npm run inspect`: open the MCP Inspector against the built server
-- `npm run package:skill`: bundle the tool into `skill/repo-context/scripts/` and build `repo-context-skill.zip`
+- `npm run package:skill`: bundle the tool into `skills/repo-context/scripts/` and build `repo-context-skill.zip`
 - `node dist/index.js install-skill`: install your local build of the skill into `~/.claude/skills`
+- `npm run eval:skill`: check the skill with NVIDIA SkillEvaluator, Tier 1 (setup and Tiers 2-3 in [docs/skillevaluator.md](docs/skillevaluator.md))
 
 ### Project layout
 
@@ -303,7 +304,7 @@ src/
   install.ts   install-skill and uninstall-skill (finds agents automatically)
 test/          node:test tests, no network needed
 scripts/       build-skill.mjs bundles the skill script
-skill/         agent skill (SKILL.md, setup guide, logo, listing copy)
+skills/        agent skill (SKILL.md, setup guide, logo, listing copy)
 ```
 
 ## Contributing

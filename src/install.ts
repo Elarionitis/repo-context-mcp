@@ -29,7 +29,7 @@ export const AGENTS: Agent[] = [
 // one folder up when running from inside the skill itself.
 function findSkillDir(): string | undefined {
   const here = dirname(fileURLToPath(import.meta.url));
-  const candidates = [join(here, "..", "skill", SKILL), join(here, "..")];
+  const candidates = [join(here, "..", "skills", SKILL), join(here, "..")];
   return candidates.find((d) => existsSync(join(d, "SKILL.md")) && existsSync(join(d, "scripts", "repo-context.mjs")));
 }
 
@@ -121,7 +121,12 @@ export function installSkill(options: InstallOptions = {}): string {
 
   lines.push("", "Next: restart your agent and ask:", '  "Analyze expressjs/express"');
   if (claudeScript) {
-    lines.push("", "Optional, native MCP tools in Claude Code:", `  claude mcp add repo-context --scope user -- node "${claudeScript}"`);
+    // the skill's script is CLI-only, so the MCP server comes from the package
+    lines.push(
+      "",
+      "Optional, native MCP tools in Claude Code:",
+      "  claude mcp add repo-context --scope user -- npx -y github:Elarionitis/repo-context-mcp",
+    );
   }
   return lines.join("\n");
 }

@@ -10,7 +10,7 @@
   },
   "files": [
     "dist",
-    "skill/repo-context",
+    "skills/repo-context",
     "README.md",
     "LICENSE"
   ],
@@ -22,7 +22,8 @@
     "test": "node --test \"test/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "inspect": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "package:skill": "node scripts/build-skill.mjs && rm -f repo-context-skill.zip && cd skill && zip -rq ../repo-context-skill.zip repo-context -x '*.DS_Store'"
+    "package:skill": "node scripts/build-skill.mjs && rm -f repo-context-skill.zip && cd skills && zip -rq ../repo-context-skill.zip repo-context -x '*.DS_Store'",
+    "eval:skill": "npm run package:skill && skillevaluator validate ./skills/repo-context --tiers 1"
   },
   "keywords": [
     "mcp",

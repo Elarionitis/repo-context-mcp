@@ -86,7 +86,9 @@ export function getToken(): string | undefined {
 // for the CLI: every command is a new process, and without it each file
 // read would spend one more request from GitHub's hourly limit.
 const memory = new Map<string, { expires: number; value: Promise<unknown> }>();
-const cacheDir = join(tmpdir(), `repo-context-cache-${process.getuid?.() ?? "user"}`);
+// One folder per OS user. Windows has no getuid.
+const cacheOwner = process.getuid ? String(process.getuid()) : "user";
+const cacheDir = join(tmpdir(), "repo-context-cache-" + cacheOwner);
 
 function diskPath(key: string): string {
   // private repo content must not be shared with token-less runs
