@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <a href="https://www.agensi.io/skills/YOUR-SKILL-LINK">Get the skill on Agensi (free)</a> ·
-  <a href="#install">Install</a> ·
+  <a href="#install">Install (one command)</a> ·
+  <a href="https://www.agensi.io/skills/YOUR-SKILL-LINK">Agensi</a> ·
   <a href="#tools">Tools</a> ·
   <a href="#command-line">CLI</a>
 </p>
@@ -78,29 +78,33 @@ Repo Context fetches that context live from GitHub and shapes it for an LLM: com
 
 ## Install
 
-You need Node.js 20 or newer.
+All you need is [Node.js 20+](https://nodejs.org). Pick **one** of these.
 
-### Option 1: Agent skill (recommended)
-
-Get **Repo Context** free on [Agensi](https://www.agensi.io/skills/YOUR-SKILL-LINK). The skill teaches your agent when and how to use the tools, and ships the tool inside it, so there's nothing else to install.
-
-Or build the skill yourself from this repo:
+### Option 1: Skill (easiest, one command)
 
 ```bash
-npm install
-npm run package:skill
-unzip -o repo-context-skill.zip -d ~/.claude/skills/
+npx -y github:Elarionitis/repo-context-mcp install-skill
 ```
 
-### Option 2: MCP server
+This installs the skill into `~/.claude/skills/repo-context`. Restart Claude Code and ask *"Analyze expressjs/express"*. That's it: no config, no API key.
 
-**Claude Code**
+For an agent that reads skills from a different folder, pass it with `--dir`:
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp install-skill --dir path/to/your/agent/skills
+```
+
+The skill is also listed free on [Agensi](https://www.agensi.io/skills/YOUR-SKILL-LINK) if you prefer installing from a marketplace.
+
+### Option 2: MCP server (native tools in any MCP client)
+
+**Claude Code**: one command:
 
 ```bash
 claude mcp add repo-context --scope user -- npx -y github:Elarionitis/repo-context-mcp
 ```
 
-**Cursor** (`~/.cursor/mcp.json`), **Claude Desktop**, **Windsurf** and **Gemini CLI** use the same shape:
+**Cursor** (`~/.cursor/mcp.json`), **Claude Desktop**, **Windsurf** and **Gemini CLI**: add this to the MCP config file:
 
 ```json
 {
@@ -135,7 +139,15 @@ command = "npx"
 args = ["-y", "github:Elarionitis/repo-context-mcp"]
 ```
 
-The first start downloads and builds the server, which takes about 10 seconds.
+Restart your agent after adding it. The first start downloads and builds the server, which takes about 10 to 20 seconds.
+
+### Option 3: Just try it in a terminal
+
+```bash
+npx -y github:Elarionitis/repo-context-mcp analyze expressjs/express
+```
+
+More commands are listed under [Command line](#command-line).
 
 ### GitHub token (optional)
 
@@ -202,6 +214,7 @@ npm test
 - `npm run dev`: run straight from `src/` (Node 22.18+ runs TypeScript directly)
 - `npm run inspect`: open the MCP Inspector against the built server
 - `npm run package:skill`: bundle the tool into `skill/repo-context/scripts/` and build `repo-context-skill.zip`
+- `node dist/index.js install-skill`: install your local build of the skill into `~/.claude/skills`
 
 ### Project layout
 
@@ -216,6 +229,7 @@ src/
   readme.ts    README cleanup, intro and setup sections
   tree.ts      file tree rendering and file search
   parse.ts     repo name and URL parsing
+  install.ts   install-skill command
 test/          node:test tests, no network needed
 scripts/       build-skill.mjs bundles the skill script
 skill/         agent skill (SKILL.md, setup guide, logo, listing copy)

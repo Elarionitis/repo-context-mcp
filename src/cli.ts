@@ -1,4 +1,5 @@
 import { analyzeRepo, findRepoFiles, readRepoFile, repoActivity, repoTree, searchRepoCode } from "./context.ts";
+import { installSkill } from "./install.ts";
 import { VERSION } from "./version.ts";
 
 const HELP = `repo-context-mcp ${VERSION}
@@ -12,6 +13,9 @@ Or use it from the terminal:
   repo-context-mcp find     <repo> <pattern> [--limit <n>] [--ref <branch>]
   repo-context-mcp search   <repo> <query> [--limit <n>]
   repo-context-mcp activity <repo> [--commits <n>] [--ref <branch>]
+
+  repo-context-mcp install-skill [--dir <skills folder>]
+    Installs the agent skill. Default folder: ~/.claude/skills (Claude Code)
 
 <repo> is owner/name or a github.com URL.
 Set GITHUB_TOKEN for private repos, code search and higher rate limits.
@@ -61,6 +65,11 @@ export async function runCli(args: string[]): Promise<number> {
   const ref = flags.ref;
 
   try {
+    if (command === "install-skill") {
+      console.log(installSkill(flags.dir));
+      return 0;
+    }
+
     if (!repo) throw new Error(`Missing <repo>. Run "repo-context-mcp help" for usage.`);
 
     let output: string;
