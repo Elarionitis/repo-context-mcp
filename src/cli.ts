@@ -1,5 +1,6 @@
 import { analyzeRepo, findRepoFiles, readRepoFile, repoActivity, repoTree, searchRepoCode } from "./context.ts";
-import { installSkill, uninstallSkill } from "./install.ts";
+import { createInterface } from "node:readline/promises";
+import { detectAgents, installSkill, uninstallSkill } from "./install.ts";
 import { VERSION } from "./version.ts";
 
 const HELP = `repo-context-mcp ${VERSION}
@@ -14,9 +15,10 @@ Or use it from the terminal:
   repo-context-mcp search   <repo> <query> [--limit <n>]
   repo-context-mcp activity <repo> [--commits <n>] [--ref <branch>]
 
-  repo-context-mcp install-skill [--agent <name>] [--dir <folder>]
-    Installs the agent skill for every agent found on this computer.
-    --agent picks agents instead: claude, codex, gemini, copilot, cursor or all
+  repo-context-mcp install-skill [--agent <name>] [--dir <folder>] [--yes]
+    Installs the agent skill. If several agents are found, asks which ones.
+    --agent picks agents: claude, codex, gemini, copilot, cursor or all
+    --yes installs for every agent found without asking
     --dir installs into any other skills folder
 
   repo-context-mcp uninstall-skill [--dir <folder>]
@@ -38,7 +40,9 @@ function parseArgs(args: string[]): { positional: string[]; flags: Record<string
     const a = args[i];
     if (a.startsWith("--")) {
       const [key, inline] = a.slice(2).split("=", 2);
-      flags[key] = inline ?? args[++i] ?? "";
+      // a flag followed by another flag (or nothing) is a plain switch like --yes
+      const next = args[i + 1];
+      flags[key] = inline ?? (next !== undefined && !next.startsWith("--") ? args[++i] : "");
     } else {
       positional.push(a);
     }
@@ -71,7 +75,8 @@ export async function runCli(args: string[]): Promise<number> {
 
   try {
     if (command === "install-skill") {
-      console.log(installSkill({ agent: flags.agent, dir: flags.dir }));
+      const agent = flags.agent ?? (flags.dir || "yes" in flags ? undefined : await askAgents());
+      console.log(installSkill({ agent, dir: flags.dir }));
       return 0;
     }
     if (command === "uninstall-skill") {
@@ -120,6 +125,39 @@ export async function runCli(args: string[]): Promise<number> {
   } catch (err) {
     console.error(`Error: ${err instanceof Error ? err.message : String(err)}`);
     return 1;
+  }
+}
+
+// When several agents are found and someone is at the keyboard, let them
+// choose. Returns a comma separated list of agent ids, or undefined for all.
+async function askAgents(): Promise<string | undefined> {
+  const found = detectAgents();
+  if (found.length < 2 || !process.stdin.isTTY) return undefined;
+
+  console.log("Found these AI agents on your computer:");
+  found.forEach((a, i) => console.log(`  ${i + 1}. ${a.name}`));
+  console.log("");
+
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const ask = (q: string) =>
+    rl.question(q).catch(() => {
+      // Ctrl+C or Ctrl+D
+      throw new Error("Cancelled, nothing was installed.");
+    });
+  try {
+    while (true) {
+      const answer = (await ask("Press Enter to install for all, or type numbers (e.g. 1,3): ")).trim();
+      if (!answer) return undefined;
+
+      const picks = answer.split(/[\s,]+/).map(Number);
+      if (picks.every((n) => Number.isInteger(n) && n >= 1 && n <= found.length)) {
+        console.log("");
+        return [...new Set(picks)].map((n) => found[n - 1].id).join(",");
+      }
+      console.log(`Please type numbers between 1 and ${found.length}, separated by commas.`);
+    }
+  } finally {
+    rl.close();
   }
 }
 

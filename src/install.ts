@@ -42,6 +42,11 @@ function short(path: string): string {
   return path.startsWith(home) ? "~" + path.slice(home.length) : path;
 }
 
+// Agents that look installed on this computer.
+export function detectAgents(): Agent[] {
+  return AGENTS.filter((a) => a.markers.some((m) => existsSync(join(homedir(), m))));
+}
+
 function pickAgents(requested?: string): Agent[] {
   if (requested) {
     const ids = requested.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
@@ -52,7 +57,7 @@ function pickAgents(requested?: string): Agent[] {
     }
     return AGENTS.filter((a) => ids.includes(a.id));
   }
-  return AGENTS.filter((a) => a.markers.some((m) => existsSync(join(homedir(), m))));
+  return detectAgents();
 }
 
 export interface InstallOptions {
@@ -76,11 +81,12 @@ export function installSkill(options: InstallOptions = {}): string {
   };
 
   const lines: string[] = [];
-  let firstTarget: string;
+  // the MCP tip only makes sense when Claude Code got the skill
+  let claudeScript: string | undefined;
 
   if (options.dir) {
-    firstTarget = copyTo(resolve(expandHome(options.dir)));
-    lines.push(`Installed the repo-context skill to ${short(firstTarget)}`);
+    const target = copyTo(resolve(expandHome(options.dir)));
+    lines.push(`Installed the repo-context skill to ${short(target)}`);
   } else {
     let agents = pickAgents(options.agent);
     let fallback = false;
@@ -91,7 +97,6 @@ export function installSkill(options: InstallOptions = {}): string {
 
     const ids = new Set(agents.map((a) => a.id));
     lines.push("Installed the repo-context skill for:");
-    const installed: string[] = [];
     for (const agent of agents) {
       // Cursor already picks up skills from the Claude and Codex folders
       const via = agent.alsoReads?.find((id) => ids.has(id));
@@ -101,10 +106,9 @@ export function installSkill(options: InstallOptions = {}): string {
         continue;
       }
       const target = copyTo(join(homedir(), agent.skills));
-      installed.push(target);
+      if (agent.id === "claude") claudeScript = join(target, "scripts", "repo-context.mjs");
       lines.push(`  ✓ ${agent.name.padEnd(15)} ${short(target)}`);
     }
-    firstTarget = installed[0];
 
     if (fallback) {
       lines.push(
@@ -115,14 +119,10 @@ export function installSkill(options: InstallOptions = {}): string {
     }
   }
 
-  lines.push(
-    "",
-    "Next: restart your agent and ask:",
-    '  "Analyze expressjs/express"',
-    "",
-    "Optional, native MCP tools in Claude Code:",
-    `  claude mcp add repo-context --scope user -- node "${join(firstTarget, "scripts", "repo-context.mjs")}"`,
-  );
+  lines.push("", "Next: restart your agent and ask:", '  "Analyze expressjs/express"');
+  if (claudeScript) {
+    lines.push("", "Optional, native MCP tools in Claude Code:", `  claude mcp add repo-context --scope user -- node "${claudeScript}"`);
+  }
   return lines.join("\n");
 }
 

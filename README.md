@@ -96,14 +96,31 @@ Download the LTS version from [nodejs.org](https://nodejs.org) and install it. T
 npx -y github:Elarionitis/repo-context-mcp install-skill
 ```
 
-It finds the AI agents on your computer and installs the skill into each one, so you don't need to know any folder paths. You'll see something like:
+It finds the AI agents on your computer by itself, so you don't need to know any folder paths. If you have more than one, it asks which ones to install for:
 
 ```text
+Found these AI agents on your computer:
+  1. Claude Code
+  2. Gemini CLI
+  3. Cursor
+
+Press Enter to install for all, or type numbers (e.g. 1,3): 1
+
 Installed the repo-context skill for:
   ✓ Claude Code     ~/.claude/skills/repo-context
-  ✓ Gemini CLI      ~/.gemini/skills/repo-context
-  ✓ Cursor          (uses ~/.claude/skills)
 ```
+
+**Want just one agent?** Name it in the command instead:
+
+| Agent | Command |
+|-------|---------|
+| Claude Code | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent claude` |
+| Cursor | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent cursor` |
+| Codex CLI | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent codex` |
+| Gemini CLI | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent gemini` |
+| GitHub Copilot | `npx -y github:Elarionitis/repo-context-mcp install-skill --agent copilot` |
+
+For several, separate them with commas: `--agent claude,cursor`.
 
 The first run takes about 20 seconds while it downloads.
 
@@ -116,7 +133,7 @@ Close and reopen your agent, then ask:
 Done. From now on, mention any GitHub repo and your agent will use it.
 
 <details>
-<summary>Supported agents, choosing agents, and uninstalling</summary>
+<summary>Where it installs, more options, and uninstalling</summary>
 
 | Agent | Skill folder (found automatically) |
 |-------|------------------------------------|
@@ -126,13 +143,11 @@ Done. From now on, mention any GitHub repo and your agent will use it.
 | GitHub Copilot (VS Code, CLI) | `~/.copilot/skills` |
 | Cursor | reads the Claude Code or Codex folder, otherwise `~/.cursor/skills` |
 
-Install for specific agents only:
+Other options:
 
-```bash
-npx -y github:Elarionitis/repo-context-mcp install-skill --agent cursor,codex
-```
-
-Use `--agent all` for every agent, or `--dir <folder>` for any other skills folder.
+- `--yes`: install for every agent found, without asking
+- `--agent all`: install for all supported agents, even ones not found
+- `--dir <folder>`: install into any other skills folder
 
 Remove it again:
 
