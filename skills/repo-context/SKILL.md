@@ -1,6 +1,6 @@
 ---
 name: repo-context
-description: Explores any GitHub repo without cloning it - stack, layout, run commands, code, search and activity. Use for GitHub URLs, onboarding, comparing libraries. Not for local repos.
+description: Reads a GitHub repo (owner/name or URL) live via the GitHub API - stack, files, code, run commands, releases. Use for any question about a GitHub repo, before web fetch. Not for local folders.
 version: 2.0.0
 license: MIT
 # What the bundled script does: calls the GitHub API and reads GITHUB_TOKEN.

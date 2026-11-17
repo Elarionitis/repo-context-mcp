@@ -113,7 +113,16 @@ pip install "skillevaluator[tier3]"
 skillevaluator doctor
 ```
 
-`doctor` tells you which LLM key and agent it found and what's missing. Then run everything:
+`doctor` tells you which LLM key and agent it found and what's missing.
+
+**If Tier 3 is skipped with `model nvidia/nemotron-3-super-120b-a12b is not listed`:** SkillEvaluator 0.9.0's default NVIDIA model has been retired from build.nvidia.com. Pick one that's still listed (see `curl -s https://integrate.api.nvidia.com/v1/models`):
+
+```bash
+export SKILL_EVAL_LLM_MODEL=nvidia/nemotron-3.5-super-vl-120b-a12b
+export SKILL_EVAL_JUDGE_MODEL=nvidia/nemotron-3.5-super-vl-120b-a12b
+```
+
+Then run everything:
 
 ```bash
 skillevaluator validate ./skills/repo-context
@@ -124,6 +133,9 @@ Useful flags for Tier 3:
 - `--max-cost-usd 5 --price-file prices.json` caps model spend
 - `--block-on-agent-eval` makes Tier 3 decide the exit code
 - `skillevaluator view` opens the latest live-evaluation report
+- `--n-concurrent 2` runs fewer cases at once. Use it if you see `ApiRateLimitError` or `EPIPE: broken pipe` errors with the free NVIDIA key
+
+Tier 3 writes each agent's full log to `skills/repo-context/evals/results/` (ignored by git). Look in `opencode.txt` to see whether the agent loaded the skill (`"tool":"skill"`). Move or delete that folder before the next Tier 1 run, so it isn't scanned as part of the skill.
 
 The test cases are already written in `skills/repo-context/evals/evals.json`: 11 questions about real GitHub repos plus 2 that should not use the skill. `evals/EVAL.md` explains what they cover. Edit those files to add cases. Keep the skill's name out of prompts and assertions, because Tier 3 also grades an agent without the skill on the same cases.
 

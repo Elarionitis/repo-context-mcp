@@ -12,3 +12,6 @@ demo-video/
 
 # SkillEvaluator output
 reports/
+
+# Tier 3 run logs that SkillEvaluator writes inside the skill
+skills/repo-context/evals/results/
